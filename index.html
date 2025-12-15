@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ürün Kolaj Oluşturucu</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --surface-dark: #0f172a;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--surface-dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 12px;
+            touch-action: manipulation;
+        }
+
+        .app {
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .collage-container {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .collage {
+            aspect-ratio: 9 / 16;
+            background: #ffffff;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .collage-photos-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        .collage-photos {
+            height: 100%;
+            display: grid;
+            gap: 3px;
+            padding: 3px;
+            background: #ffffff;
+        }
+
+        /* Watermark with Baskerville font */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.25);
+            letter-spacing: 6px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+            text-transform: uppercase;
+            font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, 'Times New Roman', serif;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            height: 100%;
+        }
+
+        .empty-state span {
+            font-size: 3rem;
+            margin-bottom: 8px;
+        }
+
+        /* Photo Item with Touch Gestures */
+        .photo-item {
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+            touch-action: none;
+            cursor: grab;
+        }
+
+        .photo-item:active {
+            cursor: grabbing;
+        }
+
+        .photo-item img {
+            max-width: none;
+            max-height: none;
+            transform-origin: center center;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .edit-hint {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 10px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 15;
+        }
+
+        .photo-item:hover .edit-hint,
+        .photo-item.editing .edit-hint {
+            opacity: 1;
+        }
+
+        .reset-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 15;
+        }
+
+        .photo-item:hover .reset-btn,
+        .photo-item.editing .reset-btn {
+            opacity: 1;
+        }
+
+        /* Grid Layouts */
+        .collage-photos.photos-1 {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+        }
+
+        .collage-photos.photos-2 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr;
+        }
+
+        .collage-photos.photos-3 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .collage-photos.photos-3 .photo-item:first-child {
+            grid-row: span 2;
+        }
+
+        .collage-photos.photos-4 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .collage-photos.photos-5 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .collage-photos.photos-5 .photo-item:nth-child(4) {
+            grid-column: span 1;
+        }
+
+        .collage-photos.photos-5 .photo-item:nth-child(5) {
+            grid-column: span 2;
+        }
+
+        .collage-photos.photos-6 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: 1fr 1fr;
+        }
+
+        /* Footer */
+        .collage-footer {
+            display: flex;
+            align-items: center;
+            padding: 6px 6px;
+            background: #ffffff;
+            border-top: 2px solid #e5e7eb;
+            font-size: 0.6rem;
+            gap: 6px;
+        }
+
+        .footer-logo {
+            width: 65px;
+            min-width: 65px;
+            height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .footer-logo img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-placeholder {
+            color: #9ca3af;
+            font-size: 0.45rem;
+            font-weight: 600;
+            border: 1px dashed #d1d5db;
+            padding: 3px 6px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .footer-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            flex: 1;
+        }
+
+        .footer-row {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .footer-row.hidden {
+            display: none;
+        }
+
+        .footer-items {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .footer-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 8px;
+            border-left: 2px solid #1f2937;
+            white-space: nowrap;
+        }
+
+        .footer-item:first-child {
+            border-left: none;
+            padding-left: 0;
+        }
+
+        .footer-item .label {
+            font-weight: 700;
+            color: #1f2937;
+            font-size: 0.7rem;
+        }
+
+        .footer-item .value {
+            font-weight: 400;
+            color: #1f2937;
+            font-size: 0.7rem;
+        }
+
+        /* Toggle Switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .toggle-label {
+            font-size: 0.8rem;
+            color: var(--text);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--surface-light);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked+.toggle-slider {
+            background: var(--gradient-1);
+        }
+
+        .toggle-switch input:checked+.toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .product-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .product-section.hidden {
+            display: none;
+        }
+
+        .product-title {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-section {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 14px;
+        }
+
+        .control-section h2 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .upload-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .upload-btn,
+        .logo-btn {
+            flex: 1;
+            padding: 14px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            background: rgba(99, 102, 241, 0.05);
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            display: block;
+        }
+
+        .upload-btn:hover,
+        .logo-btn:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .logo-btn.has-logo {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.15);
+            border-style: solid;
+        }
+
+        .thumbnails {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumb .remove {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ef4444;
+            border: none;
+            color: white;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: var(--surface-dark);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--gradient-1);
+            border: none;
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .download-btn:active {
+            transform: scale(0.98);
+        }
+
+        .zoom-tip {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        input[type="file"] {
+            display: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        /* iOS Safari için */
+        .upload-btn,
+        .logo-btn {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <div class="header">
+            <h1>📸 Kolaj Oluşturucu</h1>
+        </div>
+        <div class="collage-container">
+            <div class="collage" id="collage">
+                <div class="collage-photos-wrapper">
+                    <div class="collage-photos" id="collagePhotos">
+                        <div class="empty-state">
+                            <span>🖼️</span>
+                            <p>Fotoğraf yükleyin</p>
+                        </div>
+                    </div>
+                    <div class="watermark">MY TWINS STORE</div>
+                </div>
+                <div class="collage-footer">
+                    <div class="footer-logo" id="footerLogo">
+                        <span class="logo-placeholder">LOGO</span>
+                    </div>
+                    <div class="footer-rows">
+                        <div class="footer-row" id="footerRow1">
+                            <div class="footer-items">
+                                <div class="footer-item">
+                                    <span class="label">CODE</span>
+                                    <span class="value" id="dCode">26 9198</span>
+                                </div>
+                                <div class="footer-item">
+                                    <span class="label">SIZE</span>
+                                    <span class="value" id="dSize">36-42</span>
+                                </div>
+                                <div class="footer-item">
+                                    <span class="label">PRICE</span>
+                                    <span class="value" id="dPrice">54$</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="footer-row hidden" id="footerRow2">
+                            <div class="footer-items">
+                                <div class="footer-item">
+                                    <span class="label">CODE</span>
+                                    <span class="value" id="dCode2">26 9198</span>
+                                </div>
+                                <div class="footer-item">
+                                    <span class="label">SIZE</span>
+                                    <span class="value" id="dSize2">36-42</span>
+                                </div>
+                                <div class="footer-item">
+                                    <span class="label">PRICE</span>
+                                    <span class="value" id="dPrice2">54$</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="zoom-tip">👆 Fotoğrafları sürükleyerek kaydırın, 2 parmakla yakınlaştırın</p>
+        </div>
+        <div class="controls">
+            <div class="control-section">
+                <h2>📷 Fotoğraf & Logo</h2>
+                <div class="upload-row">
+                    <button type="button" class="upload-btn" id="photoBtn">+ Fotoğraf</button>
+                    <button type="button" class="logo-btn" id="logoBtn">🏷️ Logo</button>
+                </div>
+                <input type="file" id="photoInput" multiple accept="image/*" style="position:absolute;left:-9999px;">
+                <input type="file" id="logoInput" accept="image/*" style="position:absolute;left:-9999px;">
+                <div class="thumbnails" id="thumbs"></div>
+            </div>
+            <div class="control-section">
+                <h2>📋 Ürün 1</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Code</label>
+                        <input type="text" id="pCode" value="26 9198">
+                    </div>
+                    <div class="form-group">
+                        <label>Size</label>
+                        <input type="text" id="pSize" value="36-42">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Price</label>
+                        <input type="text" id="pPrice" value="54$">
+                    </div>
+                </div>
+
+                <div class="toggle-row">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggleProduct2">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">2. Ürün Ekle</span>
+                </div>
+
+                <div class="product-section hidden" id="product2Section">
+                    <div class="product-title">📋 Ürün 2</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Code</label>
+                            <input type="text" id="pCode2" value="26 9198">
+                        </div>
+                        <div class="form-group">
+                            <label>Size</label>
+                            <input type="text" id="pSize2" value="36-42">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Price</label>
+                            <input type="text" id="pPrice2" value="54$">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="download-btn" id="downloadBtn">⬇️ Kolajı İndir</button>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        const photos = [];
+        let logo = null;
+        const $ = id => document.getElementById(id);
+        const collagePhotos = $('collagePhotos');
+        const thumbs = $('thumbs');
+        const footerLogo = $('footerLogo');
+        const logoBtn = $('logoBtn');
+        const photoBtn = $('photoBtn');
+        const photoInput = $('photoInput');
+        const logoInput = $('logoInput');
+
+        // iOS Safari için buton click handlers
+        photoBtn.addEventListener('click', function () {
+            photoInput.click();
+        });
+
+        logoBtn.addEventListener('click', function () {
+            logoInput.click();
+        });
+
+        // iOS Safari uyumlu fotoğraf yükleme fonksiyonu
+        function loadImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                callback(ev.target.result);
+            };
+            reader.onerror = function (err) {
+                console.error('Dosya okuma hatası:', err);
+            };
+            // iOS için setTimeout ile asenkron çalıştır
+            setTimeout(function () {
+                reader.readAsDataURL(file);
+            }, 0);
+        }
+
+        // Photo input
+        $('photoInput').addEventListener('change', function (e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(function (file) {
+                loadImage(file, function (src) {
+                    photos.push({
+                        id: Date.now() + Math.random(),
+                        src: src,
+                        scale: 1,
+                        x: 0,
+                        y: 0
+                    });
+                    renderPhotos();
+                });
+            });
+            e.target.value = '';
+        });
+
+        // Logo input
+        $('logoInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            loadImage(file, function (src) {
+                logo = src;
+                footerLogo.innerHTML = '<img src="' + logo + '" alt="Logo">';
+                logoBtn.textContent = '✓ Logo Yüklendi';
+                logoBtn.classList.add('has-logo');
+            });
+        });
+        // Reset photo position and zoom
+        window.resetPhoto = (id, e) => {
+            e.stopPropagation();
+            const photo = photos.find(p => p.id === id);
+            if (photo) {
+                photo.scale = 1;
+                photo.x = 0;
+                photo.y = 0;
+                renderPhotos();
+            }
+        };
+        // Render photos
+        function renderPhotos() {
+            const count = photos.length;
+            if (count === 0) {
+                collagePhotos.innerHTML = '<div class="empty-state"><span>🖼️</span><p>Fotoğraf yükleyin</p></div>';
+                collagePhotos.className = 'collage-photos';
+            } else {
+                collagePhotos.className = `collage-photos photos-${Math.min(count, 6)}`;
+                collagePhotos.innerHTML = photos.slice(0, 6).map(p => `
+                    <div class="photo-item" data-id="${p.id}">
+                        <img src="${p.src}" alt="" 
+                            style="transform: scale(${p.scale}) translate(${p.x}px, ${p.y}px); width: 100%; height: 100%; object-fit: contain;">
+                        <span class="edit-hint">🔍 Kaydır & Yakınlaştır</span>
+                        <button class="reset-btn" onclick="resetPhoto(${p.id}, event)">↺ Sıfırla</button>
+                    </div>
+                `).join('');
+                document.querySelectorAll('.photo-item').forEach(item => {
+                    setupTouchHandlers(item);
+                });
+            }
+            thumbs.innerHTML = photos.map(p => `
+                <div class="thumb">
+                    <img src="${p.src}" alt="">
+                    <button class="remove" onclick="removePhoto(${p.id})">×</button>
+                </div>
+            `).join('');
+        }
+        // Touch handlers for pinch-zoom and pan
+        function setupTouchHandlers(element) {
+            const id = parseFloat(element.dataset.id);
+            const img = element.querySelector('img');
+            let initialDistance = 0;
+            let initialScale = 1;
+            let initialX = 0;
+            let initialY = 0;
+            let startX = 0;
+            let startY = 0;
+            let isPinching = false;
+            let isDragging = false;
+            const getPhoto = () => photos.find(p => p.id === id);
+            element.addEventListener('touchstart', (e) => {
+                const photo = getPhoto();
+                if (!photo) return;
+                element.classList.add('editing');
+                if (e.touches.length === 2) {
+                    isPinching = true;
+                    isDragging = false;
+                    initialDistance = getDistance(e.touches[0], e.touches[1]);
+                    initialScale = photo.scale;
+                } else if (e.touches.length === 1) {
+                    isDragging = true;
+                    isPinching = false;
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    initialX = photo.x;
+                    initialY = photo.y;
+                }
+            }, { passive: true });
+            element.addEventListener('touchmove', (e) => {
+                const photo = getPhoto();
+                if (!photo) return;
+                if (isPinching && e.touches.length === 2) {
+                    const currentDistance = getDistance(e.touches[0], e.touches[1]);
+                    const scale = initialScale * (currentDistance / initialDistance);
+                    photo.scale = Math.max(0.5, Math.min(3, scale));
+                    updateImage(img, photo);
+                } else if (isDragging && e.touches.length === 1) {
+                    const dx = (e.touches[0].clientX - startX) / photo.scale;
+                    const dy = (e.touches[0].clientY - startY) / photo.scale;
+                    photo.x = initialX + dx;
+                    photo.y = initialY + dy;
+                    updateImage(img, photo);
+                }
+            }, { passive: true });
+            element.addEventListener('touchend', (e) => {
+                if (e.touches.length === 0) {
+                    isPinching = false;
+                    isDragging = false;
+                    element.classList.remove('editing');
+                } else if (e.touches.length === 1 && isPinching) {
+                    isPinching = false;
+                    isDragging = true;
+                    const photo = getPhoto();
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    initialX = photo.x;
+                    initialY = photo.y;
+                }
+            }, { passive: true });
+            // Mouse support
+            let isMouseDown = false;
+            let mouseStartX = 0;
+            let mouseStartY = 0;
+            element.addEventListener('mousedown', (e) => {
+                const photo = getPhoto();
+                if (!photo) return;
+                isMouseDown = true;
+                element.classList.add('editing');
+                mouseStartX = e.clientX;
+                mouseStartY = e.clientY;
+                initialX = photo.x;
+                initialY = photo.y;
+            });
+            element.addEventListener('mousemove', (e) => {
+                if (!isMouseDown) return;
+                const photo = getPhoto();
+                if (!photo) return;
+                const dx = (e.clientX - mouseStartX) / photo.scale;
+                const dy = (e.clientY - mouseStartY) / photo.scale;
+                photo.x = initialX + dx;
+                photo.y = initialY + dy;
+                updateImage(img, photo);
+            });
+            element.addEventListener('mouseup', () => {
+                isMouseDown = false;
+                element.classList.remove('editing');
+            });
+            element.addEventListener('mouseleave', () => {
+                isMouseDown = false;
+                element.classList.remove('editing');
+            });
+            element.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const photo = getPhoto();
+                if (!photo) return;
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                photo.scale = Math.max(0.5, Math.min(3, photo.scale + delta));
+                updateImage(img, photo);
+            }, { passive: false });
+        }
+        function getDistance(touch1, touch2) {
+            const dx = touch1.clientX - touch2.clientX;
+            const dy = touch1.clientY - touch2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        function updateImage(img, photo) {
+            img.style.transform = `scale(${photo.scale}) translate(${photo.x}px, ${photo.y}px)`;
+        }
+        window.removePhoto = id => {
+            const i = photos.findIndex(p => p.id === id);
+            if (i > -1) photos.splice(i, 1);
+            renderPhotos();
+        };
+        // Ürün 1 input binding
+        [['pCode', 'dCode'], ['pSize', 'dSize'], ['pPrice', 'dPrice']].forEach(([input, display]) => {
+            $(input).addEventListener('input', e => $(display).textContent = e.target.value || '-');
+        });
+
+        // Ürün 2 input binding
+        [['pCode2', 'dCode2'], ['pSize2', 'dSize2'], ['pPrice2', 'dPrice2']].forEach(([input, display]) => {
+            $(input).addEventListener('input', e => $(display).textContent = e.target.value || '-');
+        });
+
+        // Toggle 2. Ürün
+        $('toggleProduct2').addEventListener('change', function () {
+            const footerRow2 = $('footerRow2');
+            const product2Section = $('product2Section');
+            if (this.checked) {
+                footerRow2.classList.remove('hidden');
+                product2Section.classList.remove('hidden');
+            } else {
+                footerRow2.classList.add('hidden');
+                product2Section.classList.add('hidden');
+            }
+        });
+        $('downloadBtn').addEventListener('click', async () => {
+            const btn = $('downloadBtn');
+            btn.textContent = 'İndiriliyor...';
+            btn.disabled = true;
+            const hints = document.querySelectorAll('.edit-hint, .reset-btn');
+            hints.forEach(h => h.style.display = 'none');
+
+            try {
+                const collageEl = $('collage');
+                const rect = collageEl.getBoundingClientRect();
+
+                // Sabit 1080x1920 çıktı boyutu
+                const outputWidth = 1080;
+                const outputHeight = 1920;
+                const scaleX = outputWidth / rect.width;
+                const scaleY = outputHeight / rect.height;
+
+                // Ana canvas oluştur (1080x1920)
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = outputWidth;
+                finalCanvas.height = outputHeight;
+                const finalCtx = finalCanvas.getContext('2d');
+                finalCtx.scale(scaleX, scaleY);
+                finalCtx.fillStyle = '#ffffff';
+                finalCtx.fillRect(0, 0, rect.width, rect.height);
+
+                // Her fotoğrafı manuel olarak çiz
+                const photoItems = document.querySelectorAll('.photo-item');
+                const photosWrapper = document.querySelector('.collage-photos-wrapper');
+                const wrapperRect = photosWrapper.getBoundingClientRect();
+
+                for (let i = 0; i < photoItems.length; i++) {
+                    const item = photoItems[i];
+                    const img = item.querySelector('img');
+                    const photo = photos[i];
+
+                    if (img && photo) {
+                        const itemRect = item.getBoundingClientRect();
+                        const relX = itemRect.left - rect.left;
+                        const relY = itemRect.top - rect.top;
+
+                        // Clip region için item sınırları
+                        finalCtx.save();
+                        finalCtx.beginPath();
+                        finalCtx.rect(relX, relY, itemRect.width, itemRect.height);
+                        finalCtx.clip();
+
+                        // Arka plan
+                        finalCtx.fillStyle = '#f3f4f6';
+                        finalCtx.fillRect(relX, relY, itemRect.width, itemRect.height);
+
+                        // Orijinal görsel yükle
+                        const tempImg = new Image();
+                        tempImg.crossOrigin = 'anonymous';
+                        await new Promise((resolve, reject) => {
+                            tempImg.onload = resolve;
+                            tempImg.onerror = reject;
+                            tempImg.src = photo.src;
+                        });
+
+                        // Orantılı boyut hesapla (object-fit: contain mantığı)
+                        const imgAspect = tempImg.naturalWidth / tempImg.naturalHeight;
+                        const containerAspect = itemRect.width / itemRect.height;
+
+                        let drawWidth, drawHeight;
+                        if (imgAspect > containerAspect) {
+                            drawWidth = itemRect.width;
+                            drawHeight = itemRect.width / imgAspect;
+                        } else {
+                            drawHeight = itemRect.height;
+                            drawWidth = itemRect.height * imgAspect;
+                        }
+
+                        // Merkez pozisyon
+                        const centerX = relX + itemRect.width / 2;
+                        const centerY = relY + itemRect.height / 2;
+
+                        // Scale ve translate uygula
+                        const scaledWidth = drawWidth * photo.scale;
+                        const scaledHeight = drawHeight * photo.scale;
+                        const drawX = centerX - scaledWidth / 2 + (photo.x * photo.scale);
+                        const drawY = centerY - scaledHeight / 2 + (photo.y * photo.scale);
+
+                        finalCtx.drawImage(tempImg, drawX, drawY, scaledWidth, scaledHeight);
+                        finalCtx.restore();
+                    }
+                }
+
+                // Watermark çiz
+                const watermark = document.querySelector('.watermark');
+                if (watermark) {
+                    const wmarkRect = watermark.getBoundingClientRect();
+                    finalCtx.save();
+                    finalCtx.font = "700 1.8rem 'Libre Baskerville', 'Baskerville Old Face', Baskerville, serif";
+                    finalCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+                    finalCtx.textAlign = 'center';
+                    finalCtx.textBaseline = 'middle';
+
+                    const wmCenterX = wrapperRect.left - rect.left + wrapperRect.width / 2;
+                    const wmCenterY = wrapperRect.top - rect.top + wrapperRect.height / 2;
+
+                    finalCtx.translate(wmCenterX, wmCenterY);
+                    finalCtx.rotate(-30 * Math.PI / 180);
+                    finalCtx.letterSpacing = '6px';
+                    finalCtx.fillText('MY TWINS STORE', 0, 0);
+                    finalCtx.restore();
+                }
+
+                // Footer'ı html2canvas ile çiz
+                const footer = document.querySelector('.collage-footer');
+                const footerRect = footer.getBoundingClientRect();
+                const footerCanvas = await html2canvas(footer, {
+                    scale: Math.max(scaleX, scaleY),
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    logging: false,
+                    width: footerRect.width,
+                    height: footerRect.height
+                });
+
+                // Footer canvas'ı doğru boyutta çiz
+                finalCtx.drawImage(
+                    footerCanvas,
+                    0, 0, footerCanvas.width, footerCanvas.height,
+                    footerRect.left - rect.left,
+                    footerRect.top - rect.top,
+                    footerRect.width,
+                    footerRect.height
+                );
+
+                const link = document.createElement('a');
+                link.download = `kolaj-${$('pCode').value || 'urun'}.png`;
+                link.href = finalCanvas.toDataURL('image/png');
+                link.click();
+            } catch (err) {
+                alert('İndirme hatası!');
+                console.error(err);
+            }
+            hints.forEach(h => h.style.display = '');
+            btn.innerHTML = '⬇️ Kolajı İndir';
+            btn.disabled = false;
+        });
+    </script>
+</body>
+
+</html>
