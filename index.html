@@ -86,21 +86,22 @@
             background: #ffffff;
         }
 
-        /* Watermark with Baskerville font */
+        /* Watermark image */
         .watermark {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: rgba(0, 0, 0, 0.25);
-            letter-spacing: 6px;
-            white-space: nowrap;
+            transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 10;
-            text-transform: uppercase;
-            font-family: 'Libre Baskerville', 'Baskerville Old Face', Baskerville, 'Times New Roman', serif;
+            opacity: 0.3;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        .watermark img {
+            width: 100%;
+            height: auto;
         }
 
         .empty-state {
@@ -134,8 +135,10 @@
         }
 
         .photo-item img {
-            max-width: none;
-            max-height: none;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
             transform-origin: center center;
             pointer-events: none;
             user-select: none;
@@ -540,6 +543,56 @@
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
         }
+
+        /* iOS Save Modal */
+        .save-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .save-modal.active {
+            display: flex;
+        }
+
+        .save-modal img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 8px;
+            -webkit-touch-callout: default !important;
+        }
+
+        .save-modal-text {
+            color: white;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .save-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -557,11 +610,11 @@
                             <p>Fotoğraf yükleyin</p>
                         </div>
                     </div>
-                    <div class="watermark">MY TWINS STORE</div>
+                    <div class="watermark"><img src="filigran.png" alt="Watermark"></div>
                 </div>
                 <div class="collage-footer">
                     <div class="footer-logo" id="footerLogo">
-                        <span class="logo-placeholder">LOGO</span>
+                        <img src="mytwins.jpg" alt="Logo" id="footerLogoImg">
                     </div>
                     <div class="footer-rows">
                         <div class="footer-row" id="footerRow1">
@@ -603,13 +656,21 @@
         </div>
         <div class="controls">
             <div class="control-section">
-                <h2>📷 Fotoğraf & Logo</h2>
+                <h2>🏷️ Marka Seçimi</h2>
+                <div class="form-group">
+                    <select id="brandSelect"
+                        style="width:100%;padding:10px;background:var(--surface-dark);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.85rem;">
+                        <option value="mytwins">My Twins</option>
+                        <option value="designerclub">Designer Club</option>
+                    </select>
+                </div>
+            </div>
+            <div class="control-section">
+                <h2>📷 Fotoğraf Yükle</h2>
                 <div class="upload-row">
-                    <button type="button" class="upload-btn" id="photoBtn">+ Fotoğraf</button>
-                    <button type="button" class="logo-btn" id="logoBtn">🏷️ Logo</button>
+                    <button type="button" class="upload-btn" id="photoBtn">+ Fotoğraf Ekle</button>
                 </div>
                 <input type="file" id="photoInput" multiple accept="image/*" style="position:absolute;left:-9999px;">
-                <input type="file" id="logoInput" accept="image/*" style="position:absolute;left:-9999px;">
                 <div class="thumbnails" id="thumbs"></div>
             </div>
             <div class="control-section">
@@ -625,7 +686,7 @@
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Price</label>
-                        <input type="text" id="pPrice" value="54$">
+                        <input type="text" id="pPrice" value="54">
                     </div>
                 </div>
 
@@ -650,7 +711,7 @@
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
                             <label>Price</label>
-                            <input type="text" id="pPrice2" value="54$">
+                            <input type="text" id="pPrice2" value="54">
                         </div>
                     </div>
                 </div>
@@ -661,23 +722,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
         const photos = [];
-        let logo = null;
         const $ = id => document.getElementById(id);
         const collagePhotos = $('collagePhotos');
         const thumbs = $('thumbs');
         const footerLogo = $('footerLogo');
-        const logoBtn = $('logoBtn');
         const photoBtn = $('photoBtn');
         const photoInput = $('photoInput');
-        const logoInput = $('logoInput');
 
-        // iOS Safari için buton click handlers
-        photoBtn.addEventListener('click', function () {
-            photoInput.click();
+        // Dinamik logo yolu (marka seçimine göre)
+        function getCurrentLogo() {
+            const brand = $('brandSelect').value;
+            return brand === 'designerclub' ? 'designerclub.jpg' : 'mytwins.jpg';
+        }
+
+        // Marka değiştiğinde logoyu güncelle
+        $('brandSelect').addEventListener('change', function () {
+            $('footerLogoImg').src = getCurrentLogo();
         });
 
-        logoBtn.addEventListener('click', function () {
-            logoInput.click();
+        // iOS Safari için buton click handler
+        photoBtn.addEventListener('click', function () {
+            photoInput.click();
         });
 
         // iOS Safari uyumlu fotoğraf yükleme fonksiyonu
@@ -714,19 +779,6 @@
             });
             e.target.value = '';
         });
-
-        // Logo input
-        $('logoInput').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            loadImage(file, function (src) {
-                logo = src;
-                footerLogo.innerHTML = '<img src="' + logo + '" alt="Logo">';
-                logoBtn.textContent = '✓ Logo Yüklendi';
-                logoBtn.classList.add('has-logo');
-            });
-        });
         // Reset photo position and zoom
         window.resetPhoto = (id, e) => {
             e.stopPropagation();
@@ -749,7 +801,7 @@
                 collagePhotos.innerHTML = photos.slice(0, 6).map(p => `
                     <div class="photo-item" data-id="${p.id}">
                         <img src="${p.src}" alt="" 
-                            style="transform: scale(${p.scale}) translate(${p.x}px, ${p.y}px); width: 100%; height: 100%; object-fit: contain;">
+                            style="transform: scale(${p.scale}) translate(${p.x}px, ${p.y}px);">
                         <span class="edit-hint">🔍 Kaydır & Yakınlaştır</span>
                         <button class="reset-btn" onclick="resetPhoto(${p.id}, event)">↺ Sıfırla</button>
                     </div>
@@ -881,14 +933,31 @@
             if (i > -1) photos.splice(i, 1);
             renderPhotos();
         };
+        // Otomatik $ ekleme fonksiyonu
+        function formatPrice(value) {
+            if (!value || value === '-') return '-';
+            // Sayıları ve noktayı koru, $ işaretini temizle
+            let num = value.replace(/[^0-9.,]/g, '');
+            if (num) return num + '$';
+            return value;
+        }
+
         // Ürün 1 input binding
-        [['pCode', 'dCode'], ['pSize', 'dSize'], ['pPrice', 'dPrice']].forEach(([input, display]) => {
+        [['pCode', 'dCode'], ['pSize', 'dSize']].forEach(([input, display]) => {
             $(input).addEventListener('input', e => $(display).textContent = e.target.value || '-');
+        });
+        // Price için özel handler - otomatik $ ekle
+        $('pPrice').addEventListener('input', e => {
+            $("dPrice").textContent = formatPrice(e.target.value);
         });
 
         // Ürün 2 input binding
-        [['pCode2', 'dCode2'], ['pSize2', 'dSize2'], ['pPrice2', 'dPrice2']].forEach(([input, display]) => {
+        [['pCode2', 'dCode2'], ['pSize2', 'dSize2']].forEach(([input, display]) => {
             $(input).addEventListener('input', e => $(display).textContent = e.target.value || '-');
+        });
+        // Price2 için özel handler - otomatik $ ekle
+        $('pPrice2').addEventListener('input', e => {
+            $("dPrice2").textContent = formatPrice(e.target.value);
         });
 
         // Toggle 2. Ürün
@@ -911,134 +980,258 @@
             hints.forEach(h => h.style.display = 'none');
 
             try {
-                const collageEl = $('collage');
-                const rect = collageEl.getBoundingClientRect();
+                // Sabit çıktı boyutları (9:16 oran)
+                const W = 1080;
+                const H = 1920;
+                const footerH = 130;
+                const photosH = H - footerH;
+                const gap = 4;
 
-                // Sabit 1080x1920 çıktı boyutu
-                const outputWidth = 1080;
-                const outputHeight = 1920;
-                const scaleX = outputWidth / rect.width;
-                const scaleY = outputHeight / rect.height;
+                // Preview element boyutunu al - ölçekleme için
+                const previewEl = document.querySelector('.collage-photos-wrapper');
+                const previewRect = previewEl.getBoundingClientRect();
+                const scaleRatio = W / previewRect.width;
 
-                // Ana canvas oluştur (1080x1920)
                 const finalCanvas = document.createElement('canvas');
-                finalCanvas.width = outputWidth;
-                finalCanvas.height = outputHeight;
-                const finalCtx = finalCanvas.getContext('2d');
-                finalCtx.scale(scaleX, scaleY);
-                finalCtx.fillStyle = '#ffffff';
-                finalCtx.fillRect(0, 0, rect.width, rect.height);
+                finalCanvas.width = W;
+                finalCanvas.height = H;
+                const ctx = finalCanvas.getContext('2d');
 
-                // Her fotoğrafı manuel olarak çiz
-                const photoItems = document.querySelectorAll('.photo-item');
-                const photosWrapper = document.querySelector('.collage-photos-wrapper');
-                const wrapperRect = photosWrapper.getBoundingClientRect();
+                // Beyaz arka plan
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, W, H);
 
-                for (let i = 0; i < photoItems.length; i++) {
-                    const item = photoItems[i];
-                    const img = item.querySelector('img');
-                    const photo = photos[i];
+                // Fotoğraf çizme fonksiyonu (object-fit: cover mantığı)
+                async function drawPhoto(src, x, y, w, h, scale, tx, ty) {
+                    return new Promise((resolve) => {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => {
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(x, y, w, h);
+                            ctx.clip();
 
-                    if (img && photo) {
-                        const itemRect = item.getBoundingClientRect();
-                        const relX = itemRect.left - rect.left;
-                        const relY = itemRect.top - rect.top;
+                            // Cover mantığı - en/boy oranını koru, hücreyi doldur
+                            const imgRatio = img.naturalWidth / img.naturalHeight;
+                            const cellRatio = w / h;
+                            let drawW, drawH;
 
-                        // Clip region için item sınırları
-                        finalCtx.save();
-                        finalCtx.beginPath();
-                        finalCtx.rect(relX, relY, itemRect.width, itemRect.height);
-                        finalCtx.clip();
+                            if (imgRatio > cellRatio) {
+                                // Görsel daha geniş - yüksekliğe göre ölçekle
+                                drawH = h;
+                                drawW = h * imgRatio;
+                            } else {
+                                // Görsel daha uzun - genişliğe göre ölçekle
+                                drawW = w;
+                                drawH = w / imgRatio;
+                            }
 
-                        // Arka plan
-                        finalCtx.fillStyle = '#f3f4f6';
-                        finalCtx.fillRect(relX, relY, itemRect.width, itemRect.height);
+                            // Merkeze hizala ve kullanıcı transformlarını uygula (ölçeklenmiş)
+                            const centerX = x + w / 2;
+                            const centerY = y + h / 2;
+                            const finalW = drawW * scale;
+                            const finalH = drawH * scale;
+                            const drawX = centerX - finalW / 2 + (tx * scaleRatio);
+                            const drawY = centerY - finalH / 2 + (ty * scaleRatio);
 
-                        // Orijinal görsel yükle
-                        const tempImg = new Image();
-                        tempImg.crossOrigin = 'anonymous';
-                        await new Promise((resolve, reject) => {
-                            tempImg.onload = resolve;
-                            tempImg.onerror = reject;
-                            tempImg.src = photo.src;
+                            ctx.drawImage(img, drawX, drawY, finalW, finalH);
+                            ctx.restore();
+                            resolve();
+                        };
+                        img.onerror = () => resolve();
+                        img.src = src;
+                    });
+                }
+
+                // Grid pozisyonlarını hesapla
+                const count = photos.length;
+                const positions = [];
+
+                if (count === 1) {
+                    positions.push({ x: 0, y: 0, w: W, h: photosH });
+                } else if (count === 2) {
+                    const halfW = (W - gap) / 2;
+                    positions.push({ x: 0, y: 0, w: halfW, h: photosH });
+                    positions.push({ x: halfW + gap, y: 0, w: halfW, h: photosH });
+                } else if (count === 3) {
+                    const halfW = (W - gap) / 2;
+                    const halfH = (photosH - gap) / 2;
+                    positions.push({ x: 0, y: 0, w: halfW, h: photosH }); // Sol tam boy
+                    positions.push({ x: halfW + gap, y: 0, w: halfW, h: halfH }); // Sağ üst
+                    positions.push({ x: halfW + gap, y: halfH + gap, w: halfW, h: halfH }); // Sağ alt
+                } else if (count === 4) {
+                    const halfW = (W - gap) / 2;
+                    const halfH = (photosH - gap) / 2;
+                    positions.push({ x: 0, y: 0, w: halfW, h: halfH });
+                    positions.push({ x: halfW + gap, y: 0, w: halfW, h: halfH });
+                    positions.push({ x: 0, y: halfH + gap, w: halfW, h: halfH });
+                    positions.push({ x: halfW + gap, y: halfH + gap, w: halfW, h: halfH });
+                } else if (count === 5) {
+                    const thirdW = (W - gap * 2) / 3;
+                    const halfH = (photosH - gap) / 2;
+                    positions.push({ x: 0, y: 0, w: thirdW, h: halfH });
+                    positions.push({ x: thirdW + gap, y: 0, w: thirdW, h: halfH });
+                    positions.push({ x: thirdW * 2 + gap * 2, y: 0, w: thirdW, h: halfH });
+                    positions.push({ x: 0, y: halfH + gap, w: thirdW, h: halfH });
+                    positions.push({ x: thirdW + gap, y: halfH + gap, w: thirdW * 2 + gap, h: halfH });
+                } else {
+                    const thirdW = (W - gap * 2) / 3;
+                    const halfH = (photosH - gap) / 2;
+                    for (let i = 0; i < Math.min(count, 6); i++) {
+                        const col = i % 3;
+                        const row = Math.floor(i / 3);
+                        positions.push({
+                            x: col * (thirdW + gap),
+                            y: row * (halfH + gap),
+                            w: thirdW,
+                            h: halfH
                         });
-
-                        // Orantılı boyut hesapla (object-fit: contain mantığı)
-                        const imgAspect = tempImg.naturalWidth / tempImg.naturalHeight;
-                        const containerAspect = itemRect.width / itemRect.height;
-
-                        let drawWidth, drawHeight;
-                        if (imgAspect > containerAspect) {
-                            drawWidth = itemRect.width;
-                            drawHeight = itemRect.width / imgAspect;
-                        } else {
-                            drawHeight = itemRect.height;
-                            drawWidth = itemRect.height * imgAspect;
-                        }
-
-                        // Merkez pozisyon
-                        const centerX = relX + itemRect.width / 2;
-                        const centerY = relY + itemRect.height / 2;
-
-                        // Scale ve translate uygula
-                        const scaledWidth = drawWidth * photo.scale;
-                        const scaledHeight = drawHeight * photo.scale;
-                        const drawX = centerX - scaledWidth / 2 + (photo.x * photo.scale);
-                        const drawY = centerY - scaledHeight / 2 + (photo.y * photo.scale);
-
-                        finalCtx.drawImage(tempImg, drawX, drawY, scaledWidth, scaledHeight);
-                        finalCtx.restore();
                     }
                 }
 
-                // Watermark çiz
-                const watermark = document.querySelector('.watermark');
-                if (watermark) {
-                    const wmarkRect = watermark.getBoundingClientRect();
-                    finalCtx.save();
-                    finalCtx.font = "700 1.8rem 'Libre Baskerville', 'Baskerville Old Face', Baskerville, serif";
-                    finalCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-                    finalCtx.textAlign = 'center';
-                    finalCtx.textBaseline = 'middle';
-
-                    const wmCenterX = wrapperRect.left - rect.left + wrapperRect.width / 2;
-                    const wmCenterY = wrapperRect.top - rect.top + wrapperRect.height / 2;
-
-                    finalCtx.translate(wmCenterX, wmCenterY);
-                    finalCtx.rotate(-30 * Math.PI / 180);
-                    finalCtx.letterSpacing = '6px';
-                    finalCtx.fillText('MY TWINS STORE', 0, 0);
-                    finalCtx.restore();
+                // Fotoğrafları çiz
+                for (let i = 0; i < Math.min(photos.length, 6); i++) {
+                    const p = photos[i];
+                    const pos = positions[i];
+                    await drawPhoto(p.src, pos.x, pos.y, pos.w, pos.h, p.scale, p.x, p.y);
                 }
 
-                // Footer'ı html2canvas ile çiz
-                const footer = document.querySelector('.collage-footer');
-                const footerRect = footer.getBoundingClientRect();
-                const footerCanvas = await html2canvas(footer, {
-                    scale: Math.max(scaleX, scaleY),
-                    backgroundColor: '#ffffff',
-                    useCORS: true,
-                    logging: false,
-                    width: footerRect.width,
-                    height: footerRect.height
+                // Watermark resmi çiz
+                const watermarkImg = new Image();
+                watermarkImg.crossOrigin = 'anonymous';
+                await new Promise((resolve) => {
+                    watermarkImg.onload = resolve;
+                    watermarkImg.onerror = resolve;
+                    watermarkImg.src = 'filigran.png';
                 });
+                if (watermarkImg.complete && watermarkImg.naturalWidth > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.3;
+                    ctx.translate(W / 2, photosH / 2);
+                    const wmMaxW = W * 0.7;
+                    const wmRatio = watermarkImg.naturalWidth / watermarkImg.naturalHeight;
+                    const wmW = wmMaxW;
+                    const wmH = wmW / wmRatio;
+                    ctx.drawImage(watermarkImg, -wmW / 2, -wmH / 2, wmW, wmH);
+                    ctx.restore();
+                }
 
-                // Footer canvas'ı doğru boyutta çiz
-                finalCtx.drawImage(
-                    footerCanvas,
-                    0, 0, footerCanvas.width, footerCanvas.height,
-                    footerRect.left - rect.left,
-                    footerRect.top - rect.top,
-                    footerRect.width,
-                    footerRect.height
-                );
+                // Footer çiz
+                const footerY = photosH;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, footerY, W, footerH);
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, footerY);
+                ctx.lineTo(W, footerY);
+                ctx.stroke();
 
-                const link = document.createElement('a');
-                link.download = `kolaj-${$('pCode').value || 'urun'}.png`;
-                link.href = finalCanvas.toDataURL('image/png');
-                link.click();
+                // Logo çiz (orijinal oranı koru)
+                const logoImg = new Image();
+                logoImg.crossOrigin = 'anonymous';
+                await new Promise((resolve) => {
+                    logoImg.onload = resolve;
+                    logoImg.onerror = resolve;
+                    logoImg.src = getCurrentLogo();
+                });
+                // Orijinal oran korunarak boyutlandır
+                const maxLogoW = 130;
+                const maxLogoH = 100;
+                const logoRatio = logoImg.naturalWidth / logoImg.naturalHeight;
+                let logoW, logoH;
+                if (logoRatio > maxLogoW / maxLogoH) {
+                    logoW = maxLogoW;
+                    logoH = maxLogoW / logoRatio;
+                } else {
+                    logoH = maxLogoH;
+                    logoW = maxLogoH * logoRatio;
+                }
+                const logoX = 20;
+                const logoY = footerY + (footerH - logoH) / 2;
+                ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+
+                // Ürün bilgilerini çiz
+                ctx.fillStyle = '#1f2937';
+                ctx.textBaseline = 'middle';
+
+                const textX = 240;
+                const has2Products = $('toggleProduct2').checked;
+                const row1Y = footerY + (has2Products ? footerH / 3 : footerH / 2);
+                const row2Y = footerY + footerH * 2 / 3;
+
+                // Satır 1
+                ctx.font = 'bold 28px Arial';
+                let xPos = textX;
+                ctx.fillText('CODE', xPos, row1Y);
+                xPos += 90;
+                ctx.font = '28px Arial';
+                ctx.fillText($('dCode').textContent, xPos, row1Y);
+                xPos += ctx.measureText($('dCode').textContent).width + 40;
+                ctx.fillText('|', xPos, row1Y);
+                xPos += 40;
+                ctx.font = 'bold 28px Arial';
+                ctx.fillText('SIZE', xPos, row1Y);
+                xPos += 80;
+                ctx.font = '28px Arial';
+                ctx.fillText($('dSize').textContent, xPos, row1Y);
+                xPos += ctx.measureText($('dSize').textContent).width + 40;
+                ctx.fillText('|', xPos, row1Y);
+                xPos += 40;
+                ctx.font = 'bold 28px Arial';
+                ctx.fillText('PRICE', xPos, row1Y);
+                xPos += 100;
+                ctx.font = '28px Arial';
+                ctx.fillText($('dPrice').textContent, xPos, row1Y);
+
+                // Satır 2
+                if (has2Products) {
+                    ctx.font = 'bold 28px Arial';
+                    xPos = textX;
+                    ctx.fillText('CODE', xPos, row2Y);
+                    xPos += 90;
+                    ctx.font = '28px Arial';
+                    ctx.fillText($('dCode2').textContent, xPos, row2Y);
+                    xPos += ctx.measureText($('dCode2').textContent).width + 40;
+                    ctx.fillText('|', xPos, row2Y);
+                    xPos += 40;
+                    ctx.font = 'bold 28px Arial';
+                    ctx.fillText('SIZE', xPos, row2Y);
+                    xPos += 80;
+                    ctx.font = '28px Arial';
+                    ctx.fillText($('dSize2').textContent, xPos, row2Y);
+                    xPos += ctx.measureText($('dSize2').textContent).width + 40;
+                    ctx.fillText('|', xPos, row2Y);
+                    xPos += 40;
+                    ctx.font = 'bold 28px Arial';
+                    ctx.fillText('PRICE', xPos, row2Y);
+                    xPos += 100;
+                    ctx.font = '28px Arial';
+                    ctx.fillText($('dPrice2').textContent, xPos, row2Y);
+                }
+
+                // iOS kontrolü
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+                if (isIOS) {
+                    let modal = document.querySelector('.save-modal');
+                    if (!modal) {
+                        modal = document.createElement('div');
+                        modal.className = 'save-modal';
+                        modal.innerHTML = '<button class="save-modal-close" onclick="this.parentElement.classList.remove(\'active\')">&times;</button><img src="" alt="Kolaj"><div class="save-modal-text">📱 <strong>Galeriye kaydetmek için:</strong><br>Görsele parmağınızı basılı tutun<br>→ "Fotoğraflara Ekle" seçeneğine tıklayın</div>';
+                        document.body.appendChild(modal);
+                    }
+                    modal.querySelector('img').src = finalCanvas.toDataURL('image/png');
+                    modal.classList.add('active');
+                } else {
+                    const link = document.createElement('a');
+                    link.download = 'kolaj-' + ($('pCode').value || 'urun') + '.png';
+                    link.href = finalCanvas.toDataURL('image/png');
+                    link.click();
+                }
             } catch (err) {
-                alert('İndirme hatası!');
+                alert('İndirme hatası: ' + err.message);
                 console.error(err);
             }
             hints.forEach(h => h.style.display = '');
